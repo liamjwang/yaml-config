@@ -1,0 +1,4 @@
+DriveTrain:
+  UnitConversions:
+    TicksPerMeter:
+      24
