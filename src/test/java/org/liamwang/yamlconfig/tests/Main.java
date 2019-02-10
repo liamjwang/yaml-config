@@ -1,6 +1,6 @@
 package org.liamwang.yamlconfig.tests;
 
-import org.liamwang.yamlconfig.YConfig;
+import org.liamwang.yamlconfig.YamlConfig;
 
 public class Main {
 
@@ -10,7 +10,7 @@ public class Main {
         System.out.println("----------");
         System.out.println("Program Started...");
 
-        YConfig vPidConfig = new YConfig("DriveTrain/VelocityPID");
+        YamlConfig vPidConfig = new YamlConfig("DriveTrain/VelocityPID");
 
         vPidConfig.registerPrefixListener(() -> {
             motorA.config_kP(vPidConfig.getDouble("P", 3));
