@@ -20,10 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-/**
- * Example to watch a directory (or tree) for changes to files.
- */
-
 public class WatchDir {
 
     private final WatchService watcher;
@@ -78,9 +74,7 @@ public class WatchDir {
         this.recursive = recursive;
 
         if (recursive) {
-//            System.out.format("Scanning %s ...\n", dir);
             registerAll(dir);
-//            System.out.println("Done.");
         } else {
             register(dir);
         }
@@ -109,7 +103,6 @@ public class WatchDir {
 
             Path dir = keys.get(key);
             if (dir == null) {
-//                System.err.println("WatchKey not recognized!!");
                 continue;
             }
 
