@@ -66,7 +66,9 @@ public class YamlConfigManager implements Runnable {
             @SuppressWarnings("unchecked")
             Map<String, Object> map = yaml.load(input);
             if (traverseKeyMap("", map)) {
-                listenerMap.get("").forEach(Runnable::run);
+                if (listenerMap.containsKey("")) {
+                    listenerMap.get("").forEach(Runnable::run);
+                }
             }
         } catch (Exception e) {
             System.out.println("[Error] Unable to parse YAML file: " + e.toString());
