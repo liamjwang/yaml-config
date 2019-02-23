@@ -1,12 +1,14 @@
 package org.liamwang.yamlconfig.tests;
 
+import org.junit.jupiter.api.Test;
 import org.liamwang.yamlconfig.YamlConfig;
 
 public class Main {
 
     public static FakeMotor motorA = new FakeMotor();
 
-    public static void main(String[] args) {
+    @Test
+    public void testYamlConfig() {
         System.out.println("----------");
         System.out.println("Program Started...");
 
