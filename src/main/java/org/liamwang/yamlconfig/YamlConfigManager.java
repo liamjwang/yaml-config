@@ -18,6 +18,7 @@ import org.yaml.snakeyaml.Yaml;
 public class YamlConfigManager implements Runnable {
 
     public static final char PATH_SEPARATOR = '/';
+    public static final String ROOT_PATH = "yaml";
 
     private static YamlConfigManager instance;
 
@@ -32,22 +33,29 @@ public class YamlConfigManager implements Runnable {
     private Map<String, List<Runnable>> listenerMap = new LinkedHashMap<>();
 
     private YamlConfigManager() {
+        try {
+            Files.walk(Paths.get(ROOT_PATH)).filter(Files::isRegularFile).forEach(filePath -> update(filePath, false)); // Update once at the beginning
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         Thread yConfigThread = new Thread(this);
         yConfigThread.start();
     }
 
+    public void manualUpdateListeners() {
+        listenerMap.values().stream().flatMap(List::stream).forEach(Runnable::run);
+    }
+
     @Override
     public void run() {
-        String path = "yaml";
         try {
-            Files.walk(Paths.get(path)).filter(Files::isRegularFile).forEach(this::update); // Update once at the beginning
-            new WatchDir(Paths.get(path), true, this::update).processEvents(); // Start watching for updates
+            new WatchDir(Paths.get(ROOT_PATH), true, filePath -> update(filePath, true)).processEvents(); // Start watching for updates
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private synchronized void update(Path path) {
+    private synchronized void update(Path path, boolean updateListeners) {
         if (!FilenameUtils.isExtension(path.toString(), "yaml")) {
             return;
         }
@@ -56,7 +64,7 @@ public class YamlConfigManager implements Runnable {
             InputStream input = new FileInputStream(new File(path.toUri()));
             @SuppressWarnings("unchecked")
             Map<String, Object> map = yaml.load(input);
-            if (traverseKeyMap("", map)) {
+            if (traverseKeyMap("", map, updateListeners) && updateListeners) {
                 if (listenerMap.containsKey("")) {
                     listenerMap.get("").forEach(Runnable::run);
                 }
@@ -66,7 +74,7 @@ public class YamlConfigManager implements Runnable {
         }
     }
 
-    private boolean traverseKeyMap(String baseString, Map<String, Object> map) {
+    private boolean traverseKeyMap(String baseString, Map<String, Object> map, boolean updateListeners) {
         boolean didChange = false;
         try {
             for (Entry<String, Object> entry : map.entrySet()) {
@@ -74,7 +82,7 @@ public class YamlConfigManager implements Runnable {
                 String str = entry.getKey();
                 Object obj = entry.getValue();
                 if (obj instanceof Map) {
-                    subDidChange |= traverseKeyMap(baseString + PATH_SEPARATOR + str, (Map<String, Object>) obj);
+                    subDidChange |= traverseKeyMap(baseString + PATH_SEPARATOR + str, (Map<String, Object>) obj, true);
                 } else if (obj instanceof Number) {
                     String normalizedKey = normalizePathStandard(baseString + PATH_SEPARATOR + str);
                     subDidChange |= !obj.equals(configMap.put(normalizedKey, obj));
@@ -82,7 +90,7 @@ public class YamlConfigManager implements Runnable {
                     System.out.println("[Warning] YAML contains object of unknown type: " + obj.toString());
                 }
                 String normalizedBase = normalizePathStandard(baseString + PATH_SEPARATOR + str);
-                if (subDidChange && listenerMap.containsKey(normalizedBase)) {
+                if (updateListeners && subDidChange && listenerMap.containsKey(normalizedBase)) {
                     listenerMap.get(normalizedBase).forEach(Runnable::run);
                 }
                 didChange |= subDidChange;

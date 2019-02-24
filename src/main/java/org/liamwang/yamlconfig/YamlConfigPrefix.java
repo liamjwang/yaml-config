@@ -32,7 +32,7 @@ public final class YamlConfigPrefix {
      */
     public void registerPrefixListener(Runnable onChange) {
         instance.registerPrefixListener(prefix, onChange);
-        onChange.run();
+//        onChange.run();
     }
 
     /**
@@ -41,6 +41,10 @@ public final class YamlConfigPrefix {
      */
     public void registerKeyListener(String relativeKey, Runnable onChange) {
         instance.registerPrefixListener(prefix + YamlConfigManager.PATH_SEPARATOR + relativeKey, onChange);
-        onChange.run();
+//        onChange.run();
+    }
+
+    public void manualUpdateListeners() {
+        instance.manualUpdateListeners();
     }
 }

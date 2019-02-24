@@ -23,4 +23,8 @@ public class YamlConfig {
     public static void registerKeyListener(String relativeKey, Runnable onChange) {
         instance.registerKeyListener(relativeKey, onChange);
     }
+
+    public static void manualUpdateListeners() {
+        instance.manualUpdateListeners();
+    }
 }
