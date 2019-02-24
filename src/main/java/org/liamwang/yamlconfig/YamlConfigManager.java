@@ -42,10 +42,6 @@ public class YamlConfigManager implements Runnable {
         yConfigThread.start();
     }
 
-    public void manualUpdateListeners() {
-        listenerMap.values().stream().flatMap(List::stream).forEach(Runnable::run);
-    }
-
     @Override
     public void run() {
         try {

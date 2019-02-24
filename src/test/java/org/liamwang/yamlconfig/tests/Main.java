@@ -1,7 +1,6 @@
 package org.liamwang.yamlconfig.tests;
 
 import org.junit.jupiter.api.Test;
-import org.liamwang.yamlconfig.YamlConfig;
 import org.liamwang.yamlconfig.YamlConfigPrefix;
 
 public class Main {
@@ -22,10 +21,6 @@ public class Main {
             System.out.print("Motor values updated: ");
             motorA.printPIDConfig();
         });
-
-        System.out.println("Manual update:");
-        YamlConfig.manualUpdateListeners();
-        System.out.println("Manual update end.");
 
         while (true) {
             try {

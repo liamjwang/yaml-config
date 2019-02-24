@@ -31,8 +31,14 @@ public final class YamlConfigPrefix {
      * @param onChange Method to call when any value in the prefix is changed
      */
     public void registerPrefixListener(Runnable onChange) {
+        registerPrefixListener(true, onChange);
+    }
+
+    public void registerPrefixListener(boolean runOnce, Runnable onChange) {
+        if (runOnce) {
+            onChange.run();
+        }
         instance.registerPrefixListener(prefix, onChange);
-//        onChange.run();
     }
 
     /**
@@ -40,11 +46,13 @@ public final class YamlConfigPrefix {
      * @param onChange Method to call when the value of relativeKey is changed is changed
      */
     public void registerKeyListener(String relativeKey, Runnable onChange) {
-        instance.registerPrefixListener(prefix + YamlConfigManager.PATH_SEPARATOR + relativeKey, onChange);
-//        onChange.run();
+        registerKeyListener(true, relativeKey, onChange);
     }
 
-    public void manualUpdateListeners() {
-        instance.manualUpdateListeners();
+    public void registerKeyListener(boolean runOnce, String relativeKey, Runnable onChange) {
+        if (runOnce) {
+            onChange.run();
+        }
+        instance.registerPrefixListener(prefix + YamlConfigManager.PATH_SEPARATOR + relativeKey, onChange);
     }
 }
