@@ -1,46 +1,26 @@
 package org.liamwang.yamlconfig;
 
-public final class YamlConfig {
+public class YamlConfig {
 
-    private final String prefix;
-    private YamlConfigManager instance;
+    public static YamlConfigPrefix instance = new YamlConfigPrefix();
 
-    public YamlConfig(String prefix) {
-        this.prefix = prefix;
-        instance = YamlConfigManager.getInstance();
+    public static String getPrefix() {
+        return instance.getPrefix();
     }
 
-    public YamlConfig() {
-        this("");
+    public static Double getDouble(String key, double defaultValue) {
+        return instance.getDouble(key, defaultValue);
     }
 
-    public String getPrefix() {
-        return prefix;
+    public static Double getDoubleOrNull(String key) {
+        return instance.getDoubleOrNull(key);
     }
 
-    public Double getDouble(String key, double defaultValue) {
-        Double num = YamlConfigManager.getInstance().getDouble(prefix + YamlConfigManager.PATH_SEPARATOR + key);
-        return num == null ? defaultValue : num;
+    public static void registerPrefixListener(Runnable onChange) {
+        instance.registerPrefixListener(onChange);
     }
 
-    public Double getDoubleOrNull(String key) {
-        return instance.getDouble(prefix + YamlConfigManager.PATH_SEPARATOR + key);
-    }
-
-    /**
-     * @param onChange Method to call when any value in the prefix is changed
-     */
-    public void registerPrefixListener(Runnable onChange) {
-        instance.registerPrefixListener(prefix, onChange);
-        onChange.run();
-    }
-
-    /**
-     * @param relativeKey Relative path to key
-     * @param onChange Method to call when the value of relativeKey is changed is changed
-     */
-    public void registerKeyListener(String relativeKey, Runnable onChange) {
-        instance.registerPrefixListener(prefix + YamlConfigManager.PATH_SEPARATOR + relativeKey, onChange);
-        onChange.run();
+    public static void registerKeyListener(String relativeKey, Runnable onChange) {
+        instance.registerKeyListener(relativeKey, onChange);
     }
 }
