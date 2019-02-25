@@ -3,7 +3,7 @@ package org.liamwang.yamlconfig.tests;
 import org.junit.jupiter.api.Test;
 import org.liamwang.yamlconfig.YamlConfigPrefix;
 
-public class Main {
+public class YamlConfigTests {
 
     public static FakeMotor motorA = new FakeMotor();
 
