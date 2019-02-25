@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: com.ctre.phoenix:wpiapi-java:5.12.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/Could not find com.ctre.phoenix:wpiapi-java:5.12.0.&#13;&#10;Searched in the following locations:&#13;&#10;  - https:/repo.maven.apache.org/maven2/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.pom&#13;&#10;  - https:/repo.maven.apache.org/maven2/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.jar&#13;&#10;  - https:/jitpack.io/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.pom&#13;&#10;  - https:/jitpack.io/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.jar&#13;&#10;  - file:/C:/Users/Public/frc2019/maven/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.pom&#13;&#10;  - file:/C:/Users/Public/frc2019/maven/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.jar&#13;&#10;  - http:/first.wpi.edu/FRC/roborio/maven/release/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.pom&#13;&#10;  - http:/first.wpi.edu/FRC/roborio/maven/release/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.jar&#13;&#10;  - http:/wpimirror.imjac.in/m2/release/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.pom&#13;&#10;  - http:/wpimirror.imjac.in/m2/release/com/ctre/phoenix/wpiapi-java/5.12.0/wpiapi-java-5.12.0.jar!/" />
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.ctre.phoenix/wpiapi-java/5.12.0/a355071240b46081f86795119258fa2ffa1401e5/wpiapi-java-5.12.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.ctre.phoenix/wpiapi-java/5.12.0/7ba7915eee25afd745d0c76be698132d71c8f519/wpiapi-java-5.12.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
