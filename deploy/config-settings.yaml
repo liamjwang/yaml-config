@@ -3,6 +3,8 @@ primary:
 - config/elevator.yaml
 override:
   ferb:
-  - config/override/ferb-drivetrain.yaml
+  - config/ferb/ferb-drivetrain.yaml
+  - config/ferb/ferb-elevator.yaml
   pandora:
-  - config/override/pandora-drivetrain.yaml
+  - config/pandora/pandora-drivetrain.yaml
+  - config/pandora/pandora-elevator.yaml

@@ -1,0 +1,3 @@
+Climber:
+  MinAccel: # Extra parameter that doesn't exist in the overrides
+    99999999999

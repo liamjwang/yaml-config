@@ -1,0 +1,3 @@
+Winch:
+  MaxVel: # Extra config that doesn't exist elsewhere
+    3
