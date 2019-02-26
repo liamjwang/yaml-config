@@ -18,7 +18,7 @@ import org.yaml.snakeyaml.Yaml;
 public class YamlConfigManager implements Runnable {
 
     public static final char PATH_SEPARATOR = '/';
-    public static final String ROOT_PATH = "yaml";
+    public static final String CONFIG_PATH = "deploy/config-settings.yaml";
 
     private static YamlConfigManager instance;
 
@@ -29,7 +29,7 @@ public class YamlConfigManager implements Runnable {
         return instance;
     }
 
-    private Map<String, Object> configMap = new LinkedHashMap<>();
+    private Map<String, Object> reducedConfigMap = new LinkedHashMap<>();
     private Map<String, List<Runnable>> listenerMap = new LinkedHashMap<>();
 
     private YamlConfigManager() {
@@ -81,7 +81,7 @@ public class YamlConfigManager implements Runnable {
                     subDidChange |= traverseKeyMap(baseString + PATH_SEPARATOR + str, (Map<String, Object>) obj, true);
                 } else if (obj instanceof Number) {
                     String normalizedKey = normalizePathStandard(baseString + PATH_SEPARATOR + str);
-                    subDidChange |= !obj.equals(configMap.put(normalizedKey, obj));
+                    subDidChange |= !obj.equals(reducedConfigMap.put(normalizedKey, obj));
                 } else {
                     System.out.println("[Warning] YAML contains object of unknown type: " + obj.toString());
                 }
@@ -97,7 +97,7 @@ public class YamlConfigManager implements Runnable {
     }
 
     synchronized Double getDouble(String key) {
-        Object val = configMap.get(normalizePathStandard(key));
+        Object val = reducedConfigMap.get(normalizePathStandard(key));
         if (val == null) {
             return null;
         }
