@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -19,6 +18,7 @@ public class YamlConfigManager implements Runnable {
 
     public static final char PATH_SEPARATOR = '/';
     public static final String CONFIG_PATH = "deploy/config-settings.yaml";
+    public static final String WATCHER_ROOT = "deploy";
 
     private static YamlConfigManager instance;
 
@@ -29,23 +29,69 @@ public class YamlConfigManager implements Runnable {
         return instance;
     }
 
-    private Map<String, Object> reducedConfigMap = new LinkedHashMap<>();
-    private Map<String, List<Runnable>> listenerMap = new LinkedHashMap<>();
+    private Map<String, Object> reducedConfigMap = new LinkedHashMap<>(); // Maps config paths to values
+    private Map<String, List<Runnable>> listenerMap = new LinkedHashMap<>(); // Maps config paths to listeners
+    private List<String> primaryFiles = new ArrayList<>(); // Maps category names to file path sets
+    private Map<String, List<String>> overrideFiles = new LinkedHashMap<>(); // Maps category names to file path sets
 
     private YamlConfigManager() {
+        parseCategoryFile();
+        updateAllFiles();
+//        try {
+//            Files.walk(Paths.get(ROOT_PATH)).filter(Files::isRegularFile).forEach(filePath -> update(filePath, false)); // Update once at the beginning
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        Thread yConfigThread = new Thread(this);
+//        yConfigThread.start();
+    }
+
+    private void parseCategoryFile() {
+        Yaml yaml = new Yaml();
         try {
-            Files.walk(Paths.get(ROOT_PATH)).filter(Files::isRegularFile).forEach(filePath -> update(filePath, false)); // Update once at the beginning
-        } catch (IOException e) {
+            InputStream input = new FileInputStream(new File(YamlConfigManager.CONFIG_PATH));
+            Map<String, Object> configMap = yaml.load(input);
+            if (configMap.containsKey("primary") && configMap.get("primary") instanceof List) {
+                List<Object> tempList = (List<Object>) configMap.get("primary");
+                primaryFiles = new ArrayList<>();
+                tempList.forEach(path -> {
+                    if (path instanceof String) {
+                        primaryFiles.add((String) path);
+                    }
+                });
+            } else {
+                System.out.println("Invalid config file: Primary config key does not contain a list!");
+                return;
+            }
+            if (configMap.containsKey("override") && configMap.get("override") instanceof Map) {
+                Map<Object, Object> tempMap = (Map<Object, Object>) configMap.get("override");
+            }
+        } catch (IOException | NullPointerException | ClassCastException e) {
+            System.out.println("Invalid config file: ");
             e.printStackTrace();
         }
-        Thread yConfigThread = new Thread(this);
-        yConfigThread.start();
+    }
+
+    private void updateAllFiles() {
+        for (String primaryFile : primaryFiles) {
+            update(Paths.get(primaryFile), true);
+        }
+        List<String> filePaths = overrideFiles.get(RobotIdentifier.getRobotName());
+        if (filePaths != null) {
+            for (String filePath : filePaths) {
+                update(Paths.get(filePath), true);
+            }
+        }
     }
 
     @Override
     public void run() {
         try {
-            new WatchDir(Paths.get(ROOT_PATH), true, filePath -> update(filePath, true)).processEvents(); // Start watching for updates
+            new WatchDir(Paths.get(WATCHER_ROOT), true, filePath -> {
+                if (filePath.endsWith("yaml")) {
+                    updateAllFiles();
+                }
+            }).processEvents(); // Start watching for updates
         } catch (IOException e) {
             e.printStackTrace();
         }

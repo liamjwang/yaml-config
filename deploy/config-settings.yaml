@@ -1,4 +1,6 @@
 primary:
+- 1
+- config/elevator.yaml
 - config/drivetrain.yaml
 - config/elevator.yaml
 override:
@@ -8,3 +10,8 @@ override:
   pandora:
   - config/pandora/pandora-drivetrain.yaml
   - config/pandora/pandora-elevator.yaml
+  - config/pandora/pandora-winch.yaml
+  asdf:
+  - config/pandora/pandora-drivetrain.yaml
+  - config/pandora/pandora-elevator.yaml
+  - config/pandora/pandora-winch.yaml
