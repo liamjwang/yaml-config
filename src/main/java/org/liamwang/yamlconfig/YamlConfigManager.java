@@ -17,7 +17,8 @@ import org.yaml.snakeyaml.Yaml;
 public class YamlConfigManager implements Runnable {
 
     public static final char PATH_SEPARATOR = '/';
-    public static final String CONFIG_PATH = "deploy/config-settings.yaml";
+    public static final String CONFIG_PATH = "deploy/";
+    public static final String CONFIG_CONFIGFILE = "config-settings.yaml";
     public static final String WATCHER_ROOT = "deploy";
 
     private static YamlConfigManager instance;
@@ -49,7 +50,7 @@ public class YamlConfigManager implements Runnable {
     private void parseCategoryFile() {
         Yaml yaml = new Yaml();
         try {
-            InputStream input = new FileInputStream(new File(YamlConfigManager.CONFIG_PATH));
+            InputStream input = new FileInputStream(new File(CONFIG_PATH + CONFIG_CONFIGFILE));
             Map<String, Object> configMap = yaml.load(input);
             if (configMap.containsKey("primary") && configMap.get("primary") instanceof List) {
                 List<Object> tempList = (List<Object>) configMap.get("primary");
@@ -65,6 +66,25 @@ public class YamlConfigManager implements Runnable {
             }
             if (configMap.containsKey("override") && configMap.get("override") instanceof Map) {
                 Map<Object, Object> tempMap = (Map<Object, Object>) configMap.get("override");
+                for (Entry<Object, Object> entry : tempMap.entrySet()) {
+                    Object overrideName = entry.getKey();
+                    Object fileListObject = entry.getValue();// overrideMap values might be empty lists!
+
+                    if (!(fileListObject instanceof List)) {
+                        continue;
+                    }
+                    if (!(overrideName instanceof String)) {
+                        continue;
+                    }
+                    List<String> tempOverridePath = new ArrayList<>();
+                    List<Object> keyList = (List<Object>) fileListObject;
+                    keyList.forEach(path -> {
+                        if (path instanceof String) {
+                            tempOverridePath.add((String) path);
+                        }
+                    });
+                    overrideFiles.put((String) overrideName, tempOverridePath);
+                }
             }
         } catch (IOException | NullPointerException | ClassCastException e) {
             System.out.println("Invalid config file: ");
@@ -74,14 +94,22 @@ public class YamlConfigManager implements Runnable {
 
     private void updateAllFiles() {
         for (String primaryFile : primaryFiles) {
-            update(Paths.get(primaryFile), true);
+            update(Paths.get(CONFIG_PATH + primaryFile), true);
         }
         List<String> filePaths = overrideFiles.get(RobotIdentifier.getRobotName());
         if (filePaths != null) {
             for (String filePath : filePaths) {
-                update(Paths.get(filePath), true);
+                update(Paths.get(CONFIG_PATH + filePath), true);
             }
         }
+        System.out.println("------------------");
+        printConfig();
+    }
+
+    public void printConfig() {
+        reducedConfigMap.forEach((key, value) -> {
+            System.out.println(key + ": " + value);
+        });
     }
 
     @Override
