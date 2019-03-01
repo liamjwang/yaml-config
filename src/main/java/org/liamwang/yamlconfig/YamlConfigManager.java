@@ -57,52 +57,43 @@ public class YamlConfigManager implements Runnable {
         try {
             InputStream input = new FileInputStream(new File(CONFIG_PATH + CONFIG_CONFIGFILE));
             Map<String, Object> rawConfigFileMap = yaml.load(input);
+
             rawConfigFileMap.keySet().stream().filter(key -> !key.equals("primary") && !key.equals("override")).forEach(key -> {
                 logger.warn("Config meta file contains undefined key: " + key);
             });
-            Object primaryPathsObject = rawConfigFileMap.get("primary");
-            if (!(primaryPathsObject instanceof List)) {
-                logger.warn("Config meta file override key does not contain a list: " + (primaryPathsObject == null ? "null" : primaryPathsObject.toString()));
-            } else {
-                List<String> primaryPaths = new ArrayList<>();
+
+            configFileMap.put("", extractPathsFromPossibleList(rawConfigFileMap.get("primary")));
+
+            Object overrideValue = rawConfigFileMap.get("override");
+            if (overrideValue instanceof Map) {
                 //noinspection unchecked
-                ((List<Object>) primaryPathsObject).forEach(path -> {
-                    if (path instanceof String) {
-                        primaryPaths.add((String) path);
-                    } else {
-                        logger.warn("Config meta file contains path which is not a string: " + (path == null ? "null" : path.toString()));
-                    }
-                });
-                configFileMap.put("", primaryPaths);
-            }
-            if (rawConfigFileMap.get("override") instanceof Map) {
-                //noinspection unchecked
-                Map<String, Object> tempMap = (Map<String, Object>) rawConfigFileMap.get("override");
-                for (Entry<String, Object> entry : tempMap.entrySet()) {
-                    Object overridePathsObject = entry.getValue();// overrideMap values might be empty lists!
-                    if (!(overridePathsObject instanceof List)) {
-                        logger.warn("Config meta file override key does not contain a list: " + (overridePathsObject == null ? "null" : overridePathsObject.toString()));
-                    } else {
-                        List<String> tempOverridePath = new ArrayList<>();
-                        //noinspection unchecked
-                        ((List<Object>) overridePathsObject).forEach(path -> {
-                            if (path instanceof String) {
-                                tempOverridePath.add((String) path);
-                            } else {
-                                logger.warn("Config meta file contains path which is not a string: " + (path == null ? "null" : path.toString()));
-                            }
-                        });
-                        configFileMap.put(entry.getKey(), tempOverridePath);
-                    }
-                }
+                ((Map<String, Object>) overrideValue).forEach((overrideKey, possiblePathList) -> configFileMap.put(overrideKey, extractPathsFromPossibleList(possiblePathList)));
             } else {
                 logger.debug("No overrides specified in config meta file.");
             }
+
         } catch (ScannerException | ParserException e) {
             logger.error("Exception when parsing config meta file " + CONFIG_PATH + CONFIG_CONFIGFILE + e.getContextMark());
         } catch (FileNotFoundException e) {
             logger.error("Config meta file not found at path: " + CONFIG_PATH + CONFIG_CONFIGFILE);
         }
+    }
+
+    private List<String> extractPathsFromPossibleList(Object pathList) {
+        List<String> primaryPaths = new ArrayList<>();
+        if (!(pathList instanceof List)) {
+            logger.warn("Config meta file key does not contain a list: " + (pathList == null ? "null" : pathList.toString()));
+        } else {
+            //noinspection unchecked
+            ((List<Object>) pathList).forEach(path -> {
+                if (path instanceof String) {
+                    primaryPaths.add((String) path);
+                } else {
+                    logger.warn("Config meta file contains path which is not a string: " + (path == null ? "null" : path.toString()));
+                }
+            });
+        }
+        return primaryPaths;
     }
 
     private void updateAllFiles() {
@@ -156,7 +147,7 @@ public class YamlConfigManager implements Runnable {
                     listenerMap.get("").forEach(Runnable::run);
                 }
             }
-        } catch (Exception e) {
+        } catch (Exception e) { // TODO: Don't do this
             logger.error("Unable to parse YAML file: " + e.toString());
         }
     }
