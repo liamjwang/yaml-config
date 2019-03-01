@@ -22,10 +22,13 @@ public class YamlConfigManager implements Runnable {
 
     private static final Logger logger = Logger.getLogger(YamlConfigManager.class);
 
-    public static final char PATH_SEPARATOR = '/';
-    public static final String CONFIG_PATH = "deploy/";
-    public static final String CONFIG_CONFIGFILE = "config-meta.yaml";
-    public static final String WATCHER_ROOT = "deploy";
+    private static final String PRIMARY_KEY = "primary";
+    private static final String OVERRIDE_KEY = "override";
+
+    static final char PATH_SEPARATOR = '/';
+
+    private static final String CONFIG_ROOT_FOLDER = "deploy";
+    private static final String CONFIG_META_FILE = "deploy/config-meta.yaml";
 
     private static YamlConfigManager instance;
 
@@ -41,7 +44,7 @@ public class YamlConfigManager implements Runnable {
     private Map<String, List<Runnable>> listenerMap = new LinkedHashMap<>(); // Maps config paths to listeners
 
     private YamlConfigManager() {
-        parseCategoryFile();
+        parseMetaFile();
         updateAllFiles();
 //        try {
 //            Files.walk(Paths.get(ROOT_PATH)).filter(Files::isRegularFile).forEach(filePath -> update(filePath, false)); // Update once at the beginning
@@ -52,19 +55,19 @@ public class YamlConfigManager implements Runnable {
 //        yConfigThread.start();
     }
 
-    private void parseCategoryFile() {
+    private void parseMetaFile() {
         Yaml yaml = new Yaml();
         try {
-            InputStream input = new FileInputStream(new File(CONFIG_PATH + CONFIG_CONFIGFILE));
+            InputStream input = new FileInputStream(new File(CONFIG_META_FILE));
             Map<String, Object> rawConfigFileMap = yaml.load(input);
 
-            rawConfigFileMap.keySet().stream().filter(key -> !key.equals("primary") && !key.equals("override")).forEach(key -> {
+            rawConfigFileMap.keySet().stream().filter(key -> !key.equals(PRIMARY_KEY) && !key.equals(OVERRIDE_KEY)).forEach(key -> {
                 logger.warn("Config meta file contains undefined key: " + key);
             });
 
-            configFileMap.put("", extractPathsFromPossibleList(rawConfigFileMap.get("primary")));
+            configFileMap.put("", extractPathsFromPossibleList(rawConfigFileMap.get(PRIMARY_KEY)));
 
-            Object overrideValue = rawConfigFileMap.get("override");
+            Object overrideValue = rawConfigFileMap.get(OVERRIDE_KEY);
             if (overrideValue instanceof Map) {
                 //noinspection unchecked
                 ((Map<String, Object>) overrideValue).forEach((overrideKey, possiblePathList) -> configFileMap.put(overrideKey, extractPathsFromPossibleList(possiblePathList)));
@@ -73,9 +76,9 @@ public class YamlConfigManager implements Runnable {
             }
 
         } catch (ScannerException | ParserException e) {
-            logger.error("Exception when parsing config meta file " + CONFIG_PATH + CONFIG_CONFIGFILE + e.getContextMark());
+            logger.error("Exception when parsing config meta file " + CONFIG_META_FILE + e.getContextMark());
         } catch (FileNotFoundException e) {
-            logger.error("Config meta file not found at path: " + CONFIG_PATH + CONFIG_CONFIGFILE);
+            logger.error("Config meta file not found at path: " + CONFIG_META_FILE);
         }
     }
 
@@ -97,20 +100,23 @@ public class YamlConfigManager implements Runnable {
     }
 
     private void updateAllFiles() {
-        List<String> primaryPaths = configFileMap.get("");
-        if (primaryPaths != null) {
-            for (String primaryFile : primaryPaths) {
-                update(Paths.get(CONFIG_PATH + primaryFile), true);
-            }
-        }
-        List<String> overridePaths = configFileMap.get(RobotIdentifier.getRobotName());
-        if (overridePaths != null) {
-            for (String filePath : overridePaths) {
-                update(Paths.get(CONFIG_PATH + filePath), true);
-            }
-        }
+        updateFilesInKey("");
+        updateFilesInKey(RobotIdentifier.getRobotName());
         System.out.println("------------------");
         printConfig();
+    }
+
+    private void updateFilesInKey(String key) {
+        List<String> overridePaths = configFileMap.get(key);
+        updateFilesInList(overridePaths);
+    }
+
+    private void updateFilesInList(List<String> overridePaths) {
+        if (overridePaths != null) {
+            for (String filePath : overridePaths) {
+                update(Paths.get(CONFIG_ROOT_FOLDER + PATH_SEPARATOR + filePath), true);
+            }
+        }
     }
 
     public void printConfig() {
@@ -122,7 +128,7 @@ public class YamlConfigManager implements Runnable {
     @Override
     public void run() {
         try {
-            new WatchDir(Paths.get(WATCHER_ROOT), true, filePath -> {
+            new WatchDir(Paths.get(CONFIG_ROOT_FOLDER), true, filePath -> {
                 if (filePath.endsWith("yaml")) {
                     updateAllFiles();
                 }
