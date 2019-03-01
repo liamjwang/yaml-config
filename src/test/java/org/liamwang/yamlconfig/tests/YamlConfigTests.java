@@ -1,9 +1,14 @@
 package org.liamwang.yamlconfig.tests;
 
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.jupiter.api.Test;
 import org.liamwang.yamlconfig.YamlConfigPrefix;
 
 public class YamlConfigTests {
+
+    private static final Logger logger = Logger.getLogger(YamlConfigTests.class);
 
     public static FakeMotor motorA = new FakeMotor();
 
@@ -11,6 +16,9 @@ public class YamlConfigTests {
     public void testYamlConfig() {
         System.out.println("----------");
         System.out.println("Program started...");
+
+        Logger.getRootLogger().setLevel(Level.DEBUG);
+        BasicConfigurator.configure();
 
         YamlConfigPrefix vPidConfig = new YamlConfigPrefix("DriveTrain/VelocityPID");
 //
