@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ public class YamlConfigManager implements Runnable {
 
     private static final String CONFIG_ROOT_FOLDER = "deploy";
     private static final String CONFIG_META_FILE = "deploy/config-meta.yaml";
+    public static final int UPDATE_FREQUENCY_TIMEOUT = 500;
 
     private static YamlConfigManager instance;
 
@@ -46,21 +48,26 @@ public class YamlConfigManager implements Runnable {
     private YamlConfigManager() {
         parseMetaFile();
         updateAllFiles();
-//        try {
-//            Files.walk(Paths.get(ROOT_PATH)).filter(Files::isRegularFile).forEach(filePath -> update(filePath, false)); // Update once at the beginning
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        Thread yConfigThread = new Thread(this);
-//        yConfigThread.start();
+        Thread yConfigThread = new Thread(this);
+        yConfigThread.start();
     }
 
-    private void parseMetaFile() {
+    private synchronized void parseMetaFile() {
+        configFileMap = new LinkedHashMap<>();
+        logger.debug("Parsing configuration meta file " + CONFIG_META_FILE);
         Yaml yaml = new Yaml();
+        InputStream input = null;
         try {
-            InputStream input = new FileInputStream(new File(CONFIG_META_FILE));
-            Map<String, Object> rawConfigFileMap = yaml.load(input);
-
+            File file = new File(CONFIG_META_FILE);
+            input = new FileInputStream(file);
+            String yamlString = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            input.close();
+            System.out.println(yamlString);
+            Map<String, Object> rawConfigFileMap = yaml.load(yamlString);
+            if (rawConfigFileMap == null) {
+                logger.error("Config meta file is null!");
+                return;
+            }
             rawConfigFileMap.keySet().stream().filter(key -> !key.equals(PRIMARY_KEY) && !key.equals(OVERRIDE_KEY)).forEach(key -> {
                 logger.warn("Config meta file contains undefined key: " + key);
             });
@@ -79,6 +86,15 @@ public class YamlConfigManager implements Runnable {
             logger.error("Exception when parsing config meta file " + CONFIG_META_FILE + e.getContextMark());
         } catch (FileNotFoundException e) {
             logger.error("Config meta file not found at path: " + CONFIG_META_FILE);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (input != null) {
+            try {
+                input.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -113,8 +129,10 @@ public class YamlConfigManager implements Runnable {
 
     private void updateFilesInList(List<String> overridePaths) {
         if (overridePaths != null) {
-            for (String filePath : overridePaths) {
-                update(Paths.get(CONFIG_ROOT_FOLDER + PATH_SEPARATOR + filePath), true);
+            for (String path : overridePaths) {
+                String fullPath = CONFIG_ROOT_FOLDER + PATH_SEPARATOR + path;
+                logger.debug("Parsing file " + fullPath);
+                update(Paths.get(fullPath), true);
             }
         }
     }
@@ -125,11 +143,20 @@ public class YamlConfigManager implements Runnable {
         });
     }
 
+    private long lastUpdateMillis = 0;
+
     @Override
     public void run() {
         try {
+            logger.debug("Configuration listener started!");
             new WatchDir(Paths.get(CONFIG_ROOT_FOLDER), true, filePath -> {
-                if (filePath.endsWith("yaml")) {
+//                if (System.currentTimeMillis() - lastUpdateMillis < UPDATE_FREQUENCY_TIMEOUT) {
+//                    return;
+//                }
+                lastUpdateMillis = System.currentTimeMillis();
+                if (filePath.toString().endsWith("yaml")) {
+                    logger.debug("Update received: " + filePath);
+                    parseMetaFile();
                     updateAllFiles();
                 }
             }).processEvents(); // Start watching for updates
@@ -144,10 +171,12 @@ public class YamlConfigManager implements Runnable {
             return;
         }
         Yaml yaml = new Yaml();
+        InputStream input = null;
         try {
-            InputStream input = new FileInputStream(new File(path.toUri()));
+            input = new FileInputStream(new File(path.toUri()));
             @SuppressWarnings("unchecked")
             Map<String, Object> map = yaml.load(input);
+            input.close();
             if (traverseKeyMap("", map, updateListeners) && updateListeners) {
                 if (listenerMap.containsKey("")) {
                     listenerMap.get("").forEach(Runnable::run);
@@ -155,6 +184,13 @@ public class YamlConfigManager implements Runnable {
             }
         } catch (Exception e) { // TODO: Don't do this
             logger.error("Unable to parse YAML file: " + e.toString());
+        }
+        if (input != null) {
+            try {
+                input.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

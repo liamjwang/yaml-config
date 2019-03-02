@@ -30,13 +30,13 @@ public class YamlConfigTests {
 //            motorA.printPIDConfig();
 //        });
 //
-//        while (true) {
-//            try {
-//                Thread.sleep(1000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//            System.out.println(System.currentTimeMillis() + " Running..");
-//        }
+        while (true) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(System.currentTimeMillis() + " Running..");
+        }
     }
 }
