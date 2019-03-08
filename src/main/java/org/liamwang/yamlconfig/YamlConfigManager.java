@@ -143,17 +143,12 @@ public class YamlConfigManager implements Runnable {
         });
     }
 
-    private long lastUpdateMillis = 0;
 
     @Override
     public void run() {
         try {
             logger.debug("Configuration listener started!");
             new WatchDir(Paths.get(CONFIG_ROOT_FOLDER), true, filePath -> {
-//                if (System.currentTimeMillis() - lastUpdateMillis < UPDATE_FREQUENCY_TIMEOUT) {
-//                    return;
-//                }
-                lastUpdateMillis = System.currentTimeMillis();
                 if (filePath.toString().endsWith("yaml")) {
                     logger.debug("Update received: " + filePath);
                     parseMetaFile();
