@@ -32,7 +32,7 @@ public class YamlConfigManager implements Runnable {
 
     private static final String CONFIG_ROOT_FOLDER = "deploy";
     private static final String CONFIG_META_FILE = "deploy/config-meta.yaml";
-    public static final int UPDATE_FREQUENCY_TIMEOUT = 500;
+    public static final int UPDATE_FREQUENCY_TIMEOUT = 300;
 
     private static YamlConfigManager instance;
 
@@ -67,7 +67,7 @@ public class YamlConfigManager implements Runnable {
                         aboutToUpdate = true;
                         new Thread(() -> {
                             try {
-                                Thread.sleep(300);
+                                Thread.sleep(UPDATE_FREQUENCY_TIMEOUT);
                                 parseMetaFile();
                                 updateAllFiles();
                             } catch (InterruptedException e) {
