@@ -251,7 +251,7 @@ public class YamlConfigManager implements Runnable {
     }
 
 
-    synchronized void registerPrefixListener(String key, Runnable onChange) {
+    synchronized void registerPathListener(String key, Runnable onChange) {
         String normalizedKey = normalizePathStandard(key);
         if (listenerMap.containsKey(normalizedKey)) {
             listenerMap.get(normalizedKey).add(onChange);
