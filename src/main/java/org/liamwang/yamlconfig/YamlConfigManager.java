@@ -9,10 +9,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 import org.yaml.snakeyaml.Yaml;
@@ -52,6 +54,37 @@ public class YamlConfigManager implements Runnable {
         yConfigThread.start();
     }
 
+    private boolean aboutToUpdate = false;
+
+    @Override
+    public void run() {
+        try {
+            logger.debug("Configuration listener started!");
+            new WatchDir(Paths.get(CONFIG_ROOT_FOLDER), true, filePath -> {
+                if (filePath.toString().endsWith("yaml")) {
+                    logger.debug("Update received: " + filePath);
+                    if (!aboutToUpdate) {
+                        aboutToUpdate = true;
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(300);
+                                parseMetaFile();
+                                updateAllFiles();
+                            } catch (InterruptedException e) {
+                                logger.error("Update timeout thread interrupted!");
+                            }
+                            aboutToUpdate = false;
+                        }).start();
+                    } else {
+                        logger.debug("Update canceled because timeout already running!");
+                    }
+                }
+            }).processEvents(); // Start watching for updates
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private synchronized void parseMetaFile() {
         configFileMap = new LinkedHashMap<>();
         logger.debug("Parsing configuration meta file " + CONFIG_META_FILE);
@@ -62,7 +95,6 @@ public class YamlConfigManager implements Runnable {
             input = new FileInputStream(file);
             String yamlString = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             input.close();
-            System.out.println(yamlString);
             Map<String, Object> rawConfigFileMap = yaml.load(yamlString);
             if (rawConfigFileMap == null) {
                 logger.error("Config meta file is null!");
@@ -115,11 +147,20 @@ public class YamlConfigManager implements Runnable {
         return primaryPaths;
     }
 
-    private void updateAllFiles() {
+    private Set<Runnable> nextUpdateSet;
+
+
+    private synchronized void updateAllFiles() {
+        nextUpdateSet = new HashSet<>();
         updateFilesInKey("");
         updateFilesInKey(RobotIdentifier.getRobotName());
-        System.out.println("------------------");
+        executeUpdates();
+        logger.debug("---------Config Update Ended---------");
         printConfig();
+    }
+
+    private void executeUpdates() {
+        nextUpdateSet.forEach(Runnable::run);
     }
 
     private void updateFilesInKey(String key) {
@@ -139,25 +180,8 @@ public class YamlConfigManager implements Runnable {
 
     public void printConfig() {
         reducedConfigMap.forEach((key, value) -> {
-            System.out.println(key + ": " + value);
+            logger.debug(key + ": " + value);
         });
-    }
-
-
-    @Override
-    public void run() {
-        try {
-            logger.debug("Configuration listener started!");
-            new WatchDir(Paths.get(CONFIG_ROOT_FOLDER), true, filePath -> {
-                if (filePath.toString().endsWith("yaml")) {
-                    logger.debug("Update received: " + filePath);
-                    parseMetaFile();
-                    updateAllFiles();
-                }
-            }).processEvents(); // Start watching for updates
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private synchronized void update(Path path, boolean updateListeners) {
@@ -174,7 +198,7 @@ public class YamlConfigManager implements Runnable {
             input.close();
             if (traverseKeyMap("", map, updateListeners) && updateListeners) {
                 if (listenerMap.containsKey("")) {
-                    listenerMap.get("").forEach(Runnable::run);
+                    listenerMap.get("").forEach(nextUpdateSet::add);
                 }
             }
         } catch (Exception e) { // TODO: Don't do this
@@ -206,7 +230,7 @@ public class YamlConfigManager implements Runnable {
                 }
                 String normalizedBase = normalizePathStandard(baseString + PATH_SEPARATOR + str);
                 if (updateListeners && subDidChange && listenerMap.containsKey(normalizedBase)) {
-                    listenerMap.get(normalizedBase).forEach(Runnable::run);
+                    listenerMap.get(normalizedBase).forEach(nextUpdateSet::add);
                 }
                 didChange |= subDidChange;
             }
