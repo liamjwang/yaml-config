@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,7 +44,7 @@ public class YamlConfigManager implements Runnable {
         return instance;
     }
 
-    private Map<String, List<String>> configFileMap = new LinkedHashMap<>(); // Maps category names to file path sets, key "" is reserved for primary config paths
+    private Map<String, List<String>> metaFileConfig = new LinkedHashMap<>(); // Maps category names to file path sets, key "" is reserved for primary config paths
     private Map<String, Object> reducedConfigMap = new LinkedHashMap<>(); // Maps config paths to values
     private Map<String, List<Runnable>> listenerMap = new LinkedHashMap<>(); // Maps config paths to listeners
 
@@ -86,7 +87,7 @@ public class YamlConfigManager implements Runnable {
     }
 
     private synchronized void parseMetaFile() {
-        configFileMap = new LinkedHashMap<>();
+        metaFileConfig = new HashMap<>();
         logger.debug("Parsing configuration meta file " + CONFIG_META_FILE);
         Yaml yaml = new Yaml();
         InputStream input = null;
@@ -104,12 +105,12 @@ public class YamlConfigManager implements Runnable {
                 logger.warn("Config meta file contains undefined key: " + key);
             });
 
-            configFileMap.put("", extractPathsFromPossibleList(rawConfigFileMap.get(PRIMARY_KEY)));
+            metaFileConfig.put("", extractPathsFromPossibleList(rawConfigFileMap.get(PRIMARY_KEY)));
 
             Object overrideValue = rawConfigFileMap.get(OVERRIDE_KEY);
             if (overrideValue instanceof Map) {
                 //noinspection unchecked
-                ((Map<String, Object>) overrideValue).forEach((overrideKey, possiblePathList) -> configFileMap.put(overrideKey, extractPathsFromPossibleList(possiblePathList)));
+                ((Map<String, Object>) overrideValue).forEach((overrideKey, possiblePathList) -> metaFileConfig.put(overrideKey, extractPathsFromPossibleList(possiblePathList)));
             } else {
                 logger.debug("No overrides specified in config meta file.");
             }
@@ -148,15 +149,20 @@ public class YamlConfigManager implements Runnable {
     }
 
     private Set<Runnable> nextUpdateSet;
-
+    private Map<String, Object> tempReducedConfigMap = new HashMap<>();
 
     private synchronized void updateAllFiles() {
         nextUpdateSet = new HashSet<>();
         updateFilesInKey("");
         updateFilesInKey(RobotIdentifier.getRobotName());
+        computeUpdates();
         executeUpdates();
         logger.debug("---------Config Update Ended---------");
         printConfig();
+    }
+
+    private void computeUpdates() {
+
     }
 
     private void executeUpdates() {
@@ -164,7 +170,7 @@ public class YamlConfigManager implements Runnable {
     }
 
     private void updateFilesInKey(String key) {
-        List<String> overridePaths = configFileMap.get(key);
+        List<String> overridePaths = metaFileConfig.get(key);
         updateFilesInList(overridePaths);
     }
 
@@ -173,7 +179,7 @@ public class YamlConfigManager implements Runnable {
             for (String path : overridePaths) {
                 String fullPath = CONFIG_ROOT_FOLDER + PATH_SEPARATOR + path;
                 logger.debug("Parsing file " + fullPath);
-                update(Paths.get(fullPath), true);
+                update(Paths.get(fullPath));
             }
         }
     }
@@ -184,7 +190,7 @@ public class YamlConfigManager implements Runnable {
         });
     }
 
-    private synchronized void update(Path path, boolean updateListeners) {
+    private synchronized void update(Path path) {
         if (!FilenameUtils.isExtension(path.toString(), "yaml")) {
             logger.warn("Provided file " + path.toString() + " is not of type yaml");
             return;
@@ -196,11 +202,7 @@ public class YamlConfigManager implements Runnable {
             @SuppressWarnings("unchecked")
             Map<String, Object> map = yaml.load(input);
             input.close();
-            if (traverseKeyMap("", map, updateListeners) && updateListeners) {
-                if (listenerMap.containsKey("")) {
-                    listenerMap.get("").forEach(nextUpdateSet::add);
-                }
-            }
+            traverseConfigMap("", map);
         } catch (Exception e) { // TODO: Don't do this
             logger.error("Unable to parse YAML file: " + e.toString());
         }
@@ -213,30 +215,31 @@ public class YamlConfigManager implements Runnable {
         }
     }
 
-    private boolean traverseKeyMap(String baseString, Map<String, Object> map, boolean updateListeners) {
-        boolean didChange = false;
-        try {
-            for (Entry<String, Object> entry : map.entrySet()) {
-                boolean subDidChange = false;
-                String str = entry.getKey();
-                Object obj = entry.getValue();
-                if (obj instanceof Map) {
-                    subDidChange |= traverseKeyMap(baseString + PATH_SEPARATOR + str, (Map<String, Object>) obj, true);
-                } else if (obj instanceof Number) {
-                    String normalizedKey = normalizePathStandard(baseString + PATH_SEPARATOR + str);
-                    subDidChange |= !obj.equals(reducedConfigMap.put(normalizedKey, obj));
-                } else {
-                    logger.warn("YAML contains object of unknown type: " + (obj == null ? "null" : obj.toString()));
-                }
-                String normalizedBase = normalizePathStandard(baseString + PATH_SEPARATOR + str);
-                if (updateListeners && subDidChange && listenerMap.containsKey(normalizedBase)) {
-                    listenerMap.get(normalizedBase).forEach(nextUpdateSet::add);
-                }
-                didChange |= subDidChange;
-            }
-        } catch (NullPointerException ignored) {
+    private void traverseConfigMap(String globalPath, Map<String, Object> rawYamlMap) {
+        for (Entry<String, Object> entry : rawYamlMap.entrySet()) {
+            String localPath = entry.getKey();
+            Object configValue = entry.getValue();
+            processConfigValue(globalPath + PATH_SEPARATOR + localPath, value);
         }
-        return didChange;
+    }
+
+    /**
+     * @param path Full path to the location in the config tree
+     * @param value Object that is either a map of more config values or a config value itself
+     * @return If the value changed or a value in the path changed
+     */
+    private void processConfigValue(String path, Object value) {
+        if (value instanceof Map) { // if value is a map of more config values
+            traverseConfigMap(path, (Map<String, Object>) value);
+        } else if (isSupportedType(value)) { // if value is a config entry
+            reducedConfigMap.put(path, value);
+        } else {
+            logger.warn("YAML contains object of unknown type: " + (value == null ? "null" : value.toString()));
+        }
+    }
+
+    private boolean isSupportedType(Object value) {
+        return value instanceof Number;
     }
 
     synchronized Double getDouble(String key) {
