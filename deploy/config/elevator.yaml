@@ -1,5 +1,5 @@
 Elevator:
   VelocityPID:
     P: 42.0
-    I: 3.14159
-    D: 70
+    I: 3.13
+    D: 7

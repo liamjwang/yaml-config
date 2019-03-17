@@ -1,0 +1,36 @@
+primary:
+- 21
+- config/climber.yaml
+- config/drivetrain.yaml
+- config/elevator.yaml
+override:
+  ferb:
+  - config/ferb/ferb-elevator.yaml
+  - config/ferb/ferb-drivetrain.yaml
+#  wow:
+#    sick:
+#    - cool
+# #  ferb2:asdfasdfkjladfkljasdfl
+#    uhh:
+#      lo
+#    nope:
+#  ferb:
+#   - config/ferb/ferb-drivetrain.yaml
+#   - config/ferb/ferb-elevator.yaml
+#   - yaml.yaml
+#   - notyam
+#    - config/ferb/ferb-drivetrain.yaml
+#    - asdsf
+#  ferb:
+#    - 9.01
+#  pandora:
+#  - config/pandora/pandora-drivetrain.yaml
+#  - config/pandora/pandora-elevator.yaml
+#  - config/pandora/pandora-winch.yaml
+#  - 2
+#  asdf:
+#  - config/pandora/pandora-drivetrain.yaml
+#  - config/pandora/pandora-elevator.yaml
+#  - config/pandora/pandora-winch.yaml
+#  - 42.0
+#  dont-do-this:

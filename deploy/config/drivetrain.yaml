@@ -1,12 +1,12 @@
 DriveTrain:
   UnitConversions:
     TicksPerMeter:
-      2117.78
+      223
   PositionPID:
-    P: 5
+    P: 1
     I: 0.01
     D: 4
   VelocityPID:
-    P: 2
+    P: 0
     I: 0.01
-    D: 3
+    D: 2809413

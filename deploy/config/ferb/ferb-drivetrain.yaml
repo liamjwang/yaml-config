@@ -1,4 +1,8 @@
 DriveTrain:
   UnitConversions:
     TicksPerMeter:
-      7777
+      123090921
+  VelocityPID:
+    P: 0
+    I: 0.01
+    D: 4
