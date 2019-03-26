@@ -86,7 +86,7 @@ public class YamlConfigManager implements Runnable {
         }
     }
 
-    private synchronized void parseMetaFile() {
+    private synchronized void parseMetaFile() { // TODO: static
         metaFileConfig = new HashMap<>();
         logger.debug("Parsing configuration meta file " + CONFIG_META_FILE);
         Yaml yaml = new Yaml();
@@ -131,7 +131,7 @@ public class YamlConfigManager implements Runnable {
         }
     }
 
-    private List<String> extractPathsFromPossibleList(Object pathList) {
+    private List<String> extractPathsFromPossibleList(Object pathList) { // TODO: static
         List<String> primaryPaths = new ArrayList<>();
         if (!(pathList instanceof List)) {
             logger.warn("Config meta file key does not contain a list: " + (pathList == null ? "null" : pathList.toString()));
@@ -148,24 +148,21 @@ public class YamlConfigManager implements Runnable {
         return primaryPaths;
     }
 
-    private Set<Runnable> nextUpdateSet;
-    private Map<String, Object> tempReducedConfigMap = new HashMap<>();
+    private Map<String, Object> newReducedConfigMap = new HashMap<>();
 
     private synchronized void updateAllFiles() {
-        nextUpdateSet = new HashSet<>();
         updateFilesInKey("");
         updateFilesInKey(RobotIdentifier.getRobotName());
-        computeUpdates();
         executeUpdates();
         logger.debug("---------Config Update Ended---------");
         printConfig();
     }
 
-    private void computeUpdates() {
-
-    }
-
     private void executeUpdates() {
+        Set<Runnable> nextUpdateSet = new HashSet<>();
+        newReducedConfigMap.forEach((key, value) -> {
+
+        });
         nextUpdateSet.forEach(Runnable::run);
     }
 
@@ -179,7 +176,7 @@ public class YamlConfigManager implements Runnable {
             for (String path : overridePaths) {
                 String fullPath = CONFIG_ROOT_FOLDER + PATH_SEPARATOR + path;
                 logger.debug("Parsing file " + fullPath);
-                update(Paths.get(fullPath));
+                updateConfigFile(Paths.get(fullPath));
             }
         }
     }
@@ -190,7 +187,7 @@ public class YamlConfigManager implements Runnable {
         });
     }
 
-    private synchronized void update(Path path) {
+    private void updateConfigFile(Path path) {
         if (!FilenameUtils.isExtension(path.toString(), "yaml")) {
             logger.warn("Provided file " + path.toString() + " is not of type yaml");
             return;
@@ -219,7 +216,7 @@ public class YamlConfigManager implements Runnable {
         for (Entry<String, Object> entry : rawYamlMap.entrySet()) {
             String localPath = entry.getKey();
             Object configValue = entry.getValue();
-            processConfigValue(globalPath + PATH_SEPARATOR + localPath, value);
+            processConfigValue(globalPath + PATH_SEPARATOR + localPath, configValue);
         }
     }
 
@@ -232,15 +229,17 @@ public class YamlConfigManager implements Runnable {
         if (value instanceof Map) { // if value is a map of more config values
             traverseConfigMap(path, (Map<String, Object>) value);
         } else if (isSupportedType(value)) { // if value is a config entry
-            reducedConfigMap.put(path, value);
+            newReducedConfigMap.put(path, value);
         } else {
             logger.warn("YAML contains object of unknown type: " + (value == null ? "null" : value.toString()));
         }
     }
 
-    private boolean isSupportedType(Object value) {
+    private static boolean isSupportedType(Object value) {
         return value instanceof Number;
     }
+
+    // public begin
 
     synchronized Double getDouble(String key) {
         Object val = reducedConfigMap.get(normalizePathStandard(key));
